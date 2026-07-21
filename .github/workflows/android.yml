@@ -188,6 +188,28 @@ jobs:
           name: nsis-package
           path: desktopApp/build/compose/binaries/main/graalvm-nsis/*.exe
 
+  portable:
+    name: Generate Windows Portable
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      # GraalVM native-image requires the MSVC toolchain on the PATH
+      - name: Setup MSVC developer environment
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Build portable executable
+        run: ./gradlew :desktopApp:packageGraalvmPortable --stacktrace
+      - name: Upload Portable Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-package
+          path: desktopApp/build/compose/binaries/main/graalvm-portable/*.exe
+
   deb:
     name: Generate DEB
     runs-on: ubuntu-latest
@@ -380,7 +402,7 @@ jobs:
 
   release:
     name: Release All Platforms
-    needs: [apk, cli-linux, cli-macos, cli-windows, dmg, nsis, deb, rpm, appimage, linux-tar, flatpak]
+    needs: [apk, cli-linux, cli-macos, cli-windows, dmg, nsis, portable, deb, rpm, appimage, linux-tar, flatpak]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -427,6 +449,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: nsis-package
+
+      # Downloaded into its own dir: the portable and NSIS installers are both .exe
+      - name: Download Portable Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: portable-package
+          path: portable-artifact
 
       - name: Download DEB Artifact
         uses: actions/download-artifact@v4
@@ -482,6 +511,7 @@ jobs:
           mv cli-windows-x64.zip "LinuxCommandLibrary-${VERSION}-cli-windows-x64.zip"
           mv *.dmg "LinuxCommandLibrary-${VERSION}-macos.dmg"
           mv *.exe "LinuxCommandLibrary-${VERSION}-windows.exe"
+          mv portable-artifact/*.exe "LinuxCommandLibrary-${VERSION}-windows-portable.exe"
           mv *.deb "LinuxCommandLibrary-${VERSION}-linux.deb"
           mv *.rpm "LinuxCommandLibrary-${VERSION}-linux.rpm"
           mv *.AppImage "LinuxCommandLibrary-${VERSION}-linux.AppImage"
