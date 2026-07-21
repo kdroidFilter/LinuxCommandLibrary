@@ -159,15 +159,15 @@ jobs:
       - name: Set execution flag for gradlew
         run: chmod +x gradlew
       - name: Build DMG
-        run: bash ./gradlew :desktopApp:packageReleaseDmg --stacktrace
+        run: bash ./gradlew :desktopApp:packageGraalvmDmg --stacktrace
       - name: Upload DMG Artifact
         uses: actions/upload-artifact@v4
         with:
           name: dmg-package
-          path: desktopApp/build/compose/binaries/main-release/dmg/*.dmg
+          path: desktopApp/build/compose/binaries/main/graalvm-dmg/*.dmg
 
-  msi:
-    name: Generate MSI
+  nsis:
+    name: Generate NSIS Installer
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -177,13 +177,16 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: Build MSI
-        run: ./gradlew :desktopApp:packageReleaseMsi --stacktrace
-      - name: Upload MSI Artifact
+      # GraalVM native-image requires the MSVC toolchain on the PATH
+      - name: Setup MSVC developer environment
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Build NSIS installer
+        run: ./gradlew :desktopApp:packageGraalvmNsis --stacktrace
+      - name: Upload NSIS Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: msi-package
-          path: desktopApp/build/compose/binaries/main-release/msi/*.msi
+          name: nsis-package
+          path: desktopApp/build/compose/binaries/main/graalvm-nsis/*.exe
 
   deb:
     name: Generate DEB
@@ -198,13 +201,16 @@ jobs:
           java-version: "21"
       - name: Set execution flag for gradlew
         run: chmod +x gradlew
+      # GraalVM native-image requires a C toolchain and zlib headers
+      - name: Install native build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential zlib1g-dev
       - name: Build DEB
-        run: ./gradlew :desktopApp:packageReleaseDeb --stacktrace
+        run: ./gradlew :desktopApp:packageGraalvmDeb --stacktrace
       - name: Upload DEB Artifact
         uses: actions/upload-artifact@v4
         with:
           name: deb-package
-          path: desktopApp/build/compose/binaries/main-release/deb/*.deb
+          path: desktopApp/build/compose/binaries/main/graalvm-deb/*.deb
 
   rpm:
     name: Generate RPM
@@ -219,15 +225,16 @@ jobs:
           java-version: "21"
       - name: Set execution flag for gradlew
         run: chmod +x gradlew
-      - name: Install RPM build tools
-        run: sudo apt-get update && sudo apt-get install -y rpm
+      # GraalVM native-image requires a C toolchain and zlib headers; rpm packages the output
+      - name: Install native build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential zlib1g-dev rpm
       - name: Build RPM
-        run: ./gradlew :desktopApp:packageReleaseRpm --stacktrace
+        run: ./gradlew :desktopApp:packageGraalvmRpm --stacktrace
       - name: Upload RPM Artifact
         uses: actions/upload-artifact@v4
         with:
           name: rpm-package
-          path: desktopApp/build/compose/binaries/main-release/rpm/*.rpm
+          path: desktopApp/build/compose/binaries/main/graalvm-rpm/*.rpm
 
   linux-tar:
     name: Generate Linux Tarball
@@ -269,59 +276,16 @@ jobs:
           java-version: "21"
       - name: Set execution flag for gradlew
         run: chmod +x gradlew
-      - name: Install AppImage tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libfuse2 file
-          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x appimagetool-x86_64.AppImage
-      - name: Build application distribution
-        run: ./gradlew :desktopApp:createReleaseDistributable --stacktrace
-      - name: Create AppDir structure
-        run: |
-          mkdir -p AppDir/usr/bin
-          mkdir -p AppDir/usr/lib
-          mkdir -p AppDir/usr/share/applications
-          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-
-          # Copy distributable contents
-          cp -r desktopApp/build/compose/binaries/main-release/app/LinuxCommandLibrary/* AppDir/usr/lib/
-
-          # Copy icon
-          cp desktopApp/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/linuxcommandlibrary.png
-          cp desktopApp/icon.png AppDir/linuxcommandlibrary.png
-
-          # Create desktop file
-          cat > AppDir/linuxcommandlibrary.desktop << 'EOF'
-          [Desktop Entry]
-          Name=Linux Command Library
-          Comment=Linux Command Reference
-          Exec=linuxcommandlibrary
-          Icon=linuxcommandlibrary
-          Type=Application
-          Categories=Utility;
-          Terminal=false
-          EOF
-          cp AppDir/linuxcommandlibrary.desktop AppDir/usr/share/applications/
-
-          # Create AppRun
-          cat > AppDir/AppRun << 'EOF'
-          #!/bin/bash
-          SELF=$(readlink -f "$0")
-          HERE=${SELF%/*}
-          export PATH="${HERE}/usr/lib/bin:${PATH}"
-          export LD_LIBRARY_PATH="${HERE}/usr/lib/lib/runtime/lib:${LD_LIBRARY_PATH}"
-          exec "${HERE}/usr/lib/bin/LinuxCommandLibrary" "$@"
-          EOF
-          chmod +x AppDir/AppRun
+      # GraalVM native-image requires a C toolchain and zlib headers; libfuse2 runs appimagetool
+      - name: Install native build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential zlib1g-dev libfuse2 file
       - name: Build AppImage
-        run: |
-          ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir LinuxCommandLibrary-x86_64.AppImage
+        run: ./gradlew :desktopApp:packageGraalvmAppImage --stacktrace
       - name: Upload AppImage Artifact
         uses: actions/upload-artifact@v4
         with:
           name: appimage-package
-          path: LinuxCommandLibrary-*.AppImage
+          path: desktopApp/build/compose/binaries/main/graalvm-appimage/*.AppImage
 
   flatpak:
     name: Generate Flatpak
@@ -416,7 +380,7 @@ jobs:
 
   release:
     name: Release All Platforms
-    needs: [apk, cli-linux, cli-macos, cli-windows, dmg, msi, deb, rpm, appimage, linux-tar, flatpak]
+    needs: [apk, cli-linux, cli-macos, cli-windows, dmg, nsis, deb, rpm, appimage, linux-tar, flatpak]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -459,10 +423,10 @@ jobs:
         with:
           name: dmg-package
 
-      - name: Download MSI Artifact
+      - name: Download NSIS Artifact
         uses: actions/download-artifact@v4
         with:
-          name: msi-package
+          name: nsis-package
 
       - name: Download DEB Artifact
         uses: actions/download-artifact@v4
@@ -517,7 +481,7 @@ jobs:
           mv cli-linux-arm64.zip "LinuxCommandLibrary-${VERSION}-cli-linux-arm64.zip"
           mv cli-windows-x64.zip "LinuxCommandLibrary-${VERSION}-cli-windows-x64.zip"
           mv *.dmg "LinuxCommandLibrary-${VERSION}-macos.dmg"
-          mv *.msi "LinuxCommandLibrary-${VERSION}-windows.msi"
+          mv *.exe "LinuxCommandLibrary-${VERSION}-windows.exe"
           mv *.deb "LinuxCommandLibrary-${VERSION}-linux.deb"
           mv *.rpm "LinuxCommandLibrary-${VERSION}-linux.rpm"
           mv *.AppImage "LinuxCommandLibrary-${VERSION}-linux.AppImage"
