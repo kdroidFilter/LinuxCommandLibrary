@@ -1,11 +1,12 @@
 [versions]
-agp = "9.3.0"
+agp = "9.1.0"
 appVersion = "4.4.0"
 androidVersionCode = "169"
 android-compileSdk = "37"
 android-minSdk = "24"
 android-targetSdk = "37"
 kotlin = "2.4.0"
+nucleus = "2.1.5"
 composeMultiplatform = "1.11.1"
 composeMaterial3 = "1.9.0"
 composeMaterial3Adaptive = "1.2.0"
@@ -60,6 +61,10 @@ android-sdk-common = { module = "com.android.tools:sdk-common", version.ref = "a
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleCompose" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleCompose" }
 androidx-savedstate-compose = { module = "androidx.savedstate:savedstate-compose", version.ref = "savedstateCompose" }
+nucleus-application = { module = "dev.nucleusframework:nucleus.nucleus-application", version.ref = "nucleus" }
+nucleus-decorated-window-tao = { module = "dev.nucleusframework:nucleus.decorated-window-tao", version.ref = "nucleus" }
+nucleus-decorated-window-material3 = { module = "dev.nucleusframework:nucleus.decorated-window-material3", version.ref = "nucleus" }
+nucleus-darkmode-detector = { module = "dev.nucleusframework:nucleus.darkmode-detector", version.ref = "nucleus" }
 
 
 [plugins]
@@ -70,6 +75,7 @@ kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref 
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
+nucleus = { id = "dev.nucleusframework", version.ref = "nucleus" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 skie = { id = "co.touchlab.skie", version.ref = "skie" }
