@@ -1,14 +1,12 @@
 import dev.nucleusframework.desktop.application.dsl.CompressionLevel
 import dev.nucleusframework.desktop.application.dsl.NativeImageOptimization
 import dev.nucleusframework.desktop.application.dsl.TargetFormat
-import org.jetbrains.compose.desktop.application.tasks.AbstractProguardTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.compose.compiler)
-    // Nucleus extends the JetBrains Compose plugin; it is applied on top, not in place of it.
     alias(libs.plugins.nucleus)
 }
 
@@ -46,20 +44,11 @@ kotlin {
 nucleus.application {
     mainClass = "com.linuxcommandlibrary.MainKt"
 
-    buildTypes.release.proguard {
-        configurationFiles.from(project.file("desktop-rules.pro"))
-        obfuscate.set(false)
-        optimize.set(true)
-    }
-
-    // Ahead-of-time compilation to a standalone native binary via GraalVM native-image.
-    // Nucleus resolves the reachability metadata for Compose/Skia automatically.
     graalvm {
         isEnabled.set(true)
         javaLanguageVersion.set(25)
         optimization = NativeImageOptimization.SIZE
     }
-
 
     nativeDistributions {
         targetFormats(TargetFormat.Dmg, TargetFormat.Nsis, TargetFormat.Deb, TargetFormat.Rpm, TargetFormat.AppImage, TargetFormat.Portable)
