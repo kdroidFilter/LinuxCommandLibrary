@@ -57,6 +57,12 @@ nucleus.application {
         cleanupNativeLibs = true
         compressionLevel = CompressionLevel.Ultra
 
+        // Metadata required by electron-builder when packaging the Linux deb/rpm targets:
+        // the author email comes from vendor, plus homepage and the deb maintainer.
+        vendor = "Simon Schubert <SimonSchubert@users.noreply.github.com>"
+        description = "Linux Command Library"
+        homepage = "https://github.com/SimonSchubert/LinuxCommandLibrary"
+
         macOS {
             iconFile.set(project.file("icon.icns"))
         }
@@ -66,6 +72,7 @@ nucleus.application {
         linux {
             iconFile.set(project.file("icon.png"))
             modules("jdk.security.auth")
+            debMaintainer = "Simon Schubert <SimonSchubert@users.noreply.github.com>"
         }
     }
 }
